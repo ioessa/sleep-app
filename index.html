@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.json">
+
+<title>Sleep Predictor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, sans-serif;
+  background: #f4f6fb;
+}
+.container { padding: 20px; }
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 15px;
+  background: #6c8cff;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🍼 Sleep Predictor</h2>
+
+<div class="card">
+<input type="number" id="age" placeholder="Âge (mois)">
+<input type="time" id="wake">
+<input type="number" id="nap" placeholder="Dernière sieste (min)">
+<button onclick="predict()">Prédire</button>
+</div>
+
+<div class="card" id="result"></div>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<script>
+navigator.serviceWorker.register("service-worker.js");
+
+let learnedWindow = localStorage.getItem("window")
+  ? parseFloat(localStorage.getItem("window"))
+  : null;
+
+function baseWindow(age) {
+  if (age <= 6) return 120;
+  if (age <= 12) return 180;
+  return 240;
+}
+
+function predict() {
+  let age = +age.value;
+  let nap = +nap.value;
+  let wakeTime = wake.value;
+
+  if (!wakeTime) return alert("Heure requise");
+
+  let base = baseWindow(age);
+  let adjusted = learnedWindow || base;
+
+  let [h, m] = wakeTime.split(":").map(Number);
+  let total = h*60 + m + adjusted;
+
+  let nh = Math.floor(total/60)%24;
+  let nm = total%60;
+
+  result.innerHTML = "😴 Sieste: " + nh + ":" + nm;
+
+  scheduleNotification(nh, nm);
+}
