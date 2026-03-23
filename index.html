@@ -8,57 +8,36 @@
 
 <title>Sleep Predictor</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body {
-  margin: 0;
-  font-family: -apple-system, sans-serif;
-  background: #f4f6fb;
-}
-.container { padding: 20px; }
-.card {
-  background: white;
-  border-radius: 20px;
+  font-family: Arial;
   padding: 20px;
-  margin-bottom: 15px;
 }
 button {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 15px;
-  background: #6c8cff;
-  color: white;
+  padding: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
 <h2>🍼 Sleep Predictor</h2>
 
-<div class="card">
 <input type="number" id="age" placeholder="Âge (mois)">
+<br><br>
+
 <input type="time" id="wake">
+<br><br>
+
 <input type="number" id="nap" placeholder="Dernière sieste (min)">
+<br><br>
+
 <button onclick="predict()">Prédire</button>
-</div>
 
-<div class="card" id="result"></div>
-
-<canvas id="chart"></canvas>
-
-</div>
+<h3 id="result"></h3>
 
 <script>
 navigator.serviceWorker.register("service-worker.js");
-
-let learnedWindow = localStorage.getItem("window")
-  ? parseFloat(localStorage.getItem("window"))
-  : null;
 
 function baseWindow(age) {
   if (age <= 6) return 120;
@@ -67,22 +46,24 @@ function baseWindow(age) {
 }
 
 function predict() {
-  let age = +age.value;
-  let nap = +nap.value;
-  let wakeTime = wake.value;
+  let age = +document.getElementById("age").value;
+  let nap = +document.getElementById("nap").value;
+  let wakeTime = document.getElementById("wake").value;
 
   if (!wakeTime) return alert("Heure requise");
 
   let base = baseWindow(age);
-  let adjusted = learnedWindow || base;
 
   let [h, m] = wakeTime.split(":").map(Number);
-  let total = h*60 + m + adjusted;
+  let total = h*60 + m + base;
 
   let nh = Math.floor(total/60)%24;
   let nm = total%60;
 
-  result.innerHTML = "😴 Sieste: " + nh + ":" + nm;
-
-  scheduleNotification(nh, nm);
+  document.getElementById("result").innerHTML =
+    "😴 Sieste: " + nh.toString().padStart(2,'0') + ":" + nm.toString().padStart(2,'0');
 }
+</script>
+
+</body>
+</html>
