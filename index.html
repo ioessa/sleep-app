@@ -4,65 +4,163 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="manifest.json">
-
-<title>Sleep Predictor</title>
+<title>Sleep App Pro</title>
 
 <style>
 body {
-  font-family: Arial;
+  margin: 0;
+  background: radial-gradient(circle at top, #1a1f4d, #0c0f2e);
+  color: white;
+  font-family: -apple-system;
+}
+
+.container {
+  text-align: center;
   padding: 20px;
 }
+
+.circle {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  margin: 40px auto;
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.segment {
+  position: absolute;
+  height: 6px;
+  background: #7c8cff;
+  border-radius: 10px;
+  transform-origin: left center;
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  text-align: center;
+}
+
+.big {
+  font-size: 32px;
+  font-weight: bold;
+}
+
 button {
-  padding: 10px;
+  width: 100%;
+  padding: 15px;
+  border-radius: 30px;
+  border: none;
+  margin-top: 10px;
+  background: #7c8cff;
+  color: white;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🍼 Sleep Predictor</h2>
+<div class="container">
 
-<input type="number" id="age" placeholder="Âge (mois)">
-<br><br>
+<h2>🍼 Sleep App</h2>
 
-<input type="time" id="wake">
-<br><br>
+<div class="circle" id="circle">
+  <div class="center">
+    <div id="countdown" class="big">-- min</div>
+    <div>prochaine sieste</div>
+  </div>
+</div>
 
-<input type="number" id="nap" placeholder="Dernière sieste (min)">
-<br><br>
+<button onclick="startSleep()">😴 Début sommeil</button>
+<button onclick="endSleep()">⏰ Réveil</button>
 
-<button onclick="predict()">Prédire</button>
-
-<h3 id="result"></h3>
+</div>
 
 <script>
-navigator.serviceWorker.register("service-worker.js");
 
-function baseWindow(age) {
-  if (age <= 6) return 120;
-  if (age <= 12) return 180;
-  return 240;
+// 📦 DATA
+let data = JSON.parse(localStorage.getItem("sleepData")) || [];
+
+// 🧠 START / END
+let currentSleep = null;
+
+function startSleep() {
+  currentSleep = {
+    start: new Date().toISOString(),
+    type: "nap"
+  };
 }
 
+function endSleep() {
+  if (!currentSleep) return;
+
+  currentSleep.end = new Date().toISOString();
+
+  data.push(currentSleep);
+  localStorage.setItem("sleepData", JSON.stringify(data));
+
+  currentSleep = null;
+
+  drawTimeline();
+  predict();
+}
+
+// 🎯 TIMELINE CIRCULAIRE
+function drawTimeline() {
+  let circle = document.getElementById("circle");
+
+  // reset
+  circle.querySelectorAll(".segment").forEach(e => e.remove());
+
+  data.forEach(sleep => {
+    let start = new Date(sleep.start);
+    let end = new Date(sleep.end);
+
+    let startMin = start.getHours()*60 + start.getMinutes();
+    let endMin = end.getHours()*60 + end.getMinutes();
+
+    let angleStart = (startMin / 1440) * 360;
+    let angleEnd = (endMin / 1440) * 360;
+
+    let segment = document.createElement("div");
+    segment.className = "segment";
+
+    segment.style.width = (angleEnd - angleStart) + "deg";
+    segment.style.top = "50%";
+    segment.style.left = "50%";
+    segment.style.transform =
+      `rotate(${angleStart}deg) translateX(120px)`;
+
+    circle.appendChild(segment);
+  });
+}
+
+// 🤖 PRÉDICTION
 function predict() {
-  let age = +document.getElementById("age").value;
-  let nap = +document.getElementById("nap").value;
-  let wakeTime = document.getElementById("wake").value;
+  if (data.length === 0) return;
 
-  if (!wakeTime) return alert("Heure requise");
+  let last = data[data.length - 1];
 
-  let base = baseWindow(age);
+  let lastWake = new Date(last.end);
 
-  let [h, m] = wakeTime.split(":").map(Number);
-  let total = h*60 + m + base;
+  let baseWindow = 120;
 
-  let nh = Math.floor(total/60)%24;
-  let nm = total%60;
+  let next = new Date(lastWake);
+  next.setMinutes(next.getMinutes() + baseWindow);
 
-  document.getElementById("result").innerHTML =
-    "😴 Sieste: " + nh.toString().padStart(2,'0') + ":" + nm.toString().padStart(2,'0');
+  let diff = (next - new Date()) / 60000;
+
+  document.getElementById("countdown").innerText =
+    Math.max(0, Math.round(diff)) + " min";
 }
+
+// INIT
+drawTimeline();
+predict();
+
 </script>
 
 </body>
