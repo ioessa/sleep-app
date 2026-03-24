@@ -120,6 +120,39 @@ function endSleep() {
   predict();
 }
 
+
+function addManual() {
+  let startVal = document.getElementById("manualStart").value;
+  let endVal = document.getElementById("manualEnd").value;
+
+  if (!startVal || !endVal) {
+    alert("Remplis les deux heures");
+    return;
+  }
+
+  let now = new Date();
+
+  let start = new Date();
+  let [sh, sm] = startVal.split(":");
+  start.setHours(sh, sm, 0);
+
+  let end = new Date();
+  let [eh, em] = endVal.split(":");
+  end.setHours(eh, em, 0);
+
+  data.push({
+    start: start.toISOString(),
+    end: end.toISOString(),
+    type: "nap"
+  });
+
+  localStorage.setItem("sleepData", JSON.stringify(data));
+
+  drawTimeline();
+  predict();
+}
+ 
+
 // 🎯 TIMELINE CIRCULAIRE
 function drawTimeline() {
   let circle = document.getElementById("circle");
