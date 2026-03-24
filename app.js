@@ -128,6 +128,7 @@ function renderList() {
     div.style.borderRadius = "10px";
 
     div.innerHTML = `
+      <b>${sleep.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
       <b>${formatTime(start)}</b>
       →
       <b>${end ? formatTime(end) : "..."}</b>
