@@ -46,12 +46,18 @@ function addManual() {
 
 function refresh() {
   let next = predictNext();
-
   if (!next) return;
 
-  let diff = (next - new Date()) / 60000;
+  let diff = (next.start - new Date()) / 60000;
 
-  updateUI(Math.round(diff) + " min");
+  document.getElementById("countdown").innerHTML =
+    `${Math.max(0, Math.round(diff))} min<br>
+     <small>${formatTime(next.start)} → ${formatTime(next.end)}</small>`;
+}
+
+function formatTime(date) {
+  return date.getHours().toString().padStart(2,'0') + ":" +
+         date.getMinutes().toString().padStart(2,'0');
 }
 
 function updateUI(text) {
