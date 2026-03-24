@@ -37,9 +37,16 @@
 
   <!-- AJOUT MANUEL -->
   <div class="manual">
-    <input type="time" id="start">
-    <input type="time" id="end">
-    <button onclick="addManual()">Add</button>
+
+  <select id="sleepType">
+    <option value="nap">😴 Sieste</option>
+    <option value="night">🌙 Nuit</option>
+  </select>
+
+  <input type="time" id="start">
+  <input type="time" id="end">
+
+  <button onclick="addManual()">Ajouter</button>
   </div>
 
 </div>
