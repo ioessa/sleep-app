@@ -3,78 +3,161 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sleep App</title>
+
+<title>Sleep App Pro</title>
 
 <style>
+
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #1c1f4f, #0c0f2e);
-  color: white;
   font-family: -apple-system;
+  background: radial-gradient(circle at top, #1b1f4a, #0b0e2a);
+  color: white;
 }
 
-.container {
-  text-align: center;
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
   padding: 20px;
+  font-size: 14px;
+  opacity: 0.8;
 }
 
+/* CERCLE */
 .circle {
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  margin: 40px auto;
+  margin: 20px auto;
   position: relative;
-  border: 2px solid rgba(255,255,255,0.1);
+
+  background: radial-gradient(circle, rgba(255,255,255,0.05), transparent);
+  box-shadow: 0 0 40px rgba(124,140,255,0.2);
 }
 
+/* centre */
 .center {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%,-50%);
+  text-align: center;
 }
 
 .big {
-  font-size: 32px;
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.sub {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* boutons */
+.actions {
+  padding: 20px;
 }
 
 button {
   width: 100%;
-  padding: 15px;
-  margin-top: 10px;
+  padding: 16px;
   border-radius: 30px;
   border: none;
-  background: #7c8cff;
-  color: white;
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.btn-nap {
+  background: linear-gradient(45deg, #7c8cff, #5a6cff);
+}
+
+.btn-night {
+  background: linear-gradient(45deg, #ffb86c, #ff9f40);
+}
+
+.btn-stop {
+  background: rgba(255,255,255,0.1);
+}
+
+/* carte prédiction */
+.card {
+  margin: 20px;
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.card .time {
+  font-size: 22px;
+  margin-top: 5px;
+}
+
+/* manuel */
+.manual {
+  padding: 20px;
 }
 
 input, select {
   width: 48%;
   padding: 10px;
+  border-radius: 10px;
+  border: none;
   margin-top: 10px;
 }
+
+/* liste */
+#sleepList {
+  padding: 20px;
+}
+
+.item {
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<h2>🍼 Sleep App</h2>
+<div class="header">
+  <div>🍼 Baby Sleep</div>
+  <div>🧠 Learning</div>
+</div>
 
 <div class="circle" id="circle">
   <div class="center">
     <div id="countdown" class="big">--</div>
+    <div class="sub">next sleep</div>
   </div>
 </div>
 
+<!-- CARD -->
+<div class="card">
+  <h3>Prochaine sieste</h3>
+  <div id="nextTime" class="time">--</div>
+</div>
+
 <!-- ACTIONS -->
-<button onclick="startSleep('nap')">😴 Sieste</button>
-<button onclick="startSleep('night')">🌙 Nuit</button>
-<button onclick="endSleep()">⏰ Réveil</button>
+<div class="actions">
+  <button class="btn-nap" onclick="startSleep('nap')">😴 Sieste</button>
+  <button class="btn-night" onclick="startSleep('night')">🌙 Nuit</button>
+  <button class="btn-stop" onclick="endSleep()">⏰ Réveil</button>
+</div>
 
 <!-- MANUEL -->
-<div>
+<div class="manual">
   <select id="sleepType">
     <option value="nap">😴 Sieste</option>
     <option value="night">🌙 Nuit</option>
@@ -90,8 +173,6 @@ input, select {
 
 <!-- LISTE -->
 <div id="sleepList"></div>
-
-</div>
 
 <script src="app.js"></script>
 
