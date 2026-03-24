@@ -92,6 +92,8 @@ function startSleep() {
     start: new Date().toISOString(),
     type: "nap"
   };
+
+  document.getElementById("countdown").innerText = "😴 en cours...";
 }
 
 function endSleep() {
