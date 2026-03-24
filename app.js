@@ -20,10 +20,8 @@ function endSleep() {
 }
 
 function isNight() {
-  //let h = new Date().getHours();
-  //return (h >= 19 || h <= 6);
-  function isNight() {
-  return true;
+  let h = new Date().getHours();
+  return (h >= 19 || h <= 6);
 }
 
 function pauseSleep() {
