@@ -34,6 +34,9 @@ function addManual() {
   let s = document.getElementById("start").value;
   let e = document.getElementById("end").value;
 
+  type: isNight() ? "night" : "nap",
+  drawTimeline();
+
   if (!s && !e) {
     alert("Ajoute au moins une heure");
     return;
