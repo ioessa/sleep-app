@@ -6,207 +6,46 @@
 
 <title>Sleep App Pro</title>
 
-<style>
-body {
-  margin: 0;
-  background: radial-gradient(circle at top, #1a1f4d, #0c0f2e);
-  color: white;
-  font-family: -apple-system;
-}
-
-.container {
-  text-align: center;
-  padding: 20px;
-}
-
-.circle {
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  margin: 40px auto;
-  position: relative;
-  border: 2px solid rgba(255,255,255,0.1);
-}
-
-.segment {
-  position: absolute;
-  height: 6px;
-  background: #7c8cff;
-  border-radius: 10px;
-  transform-origin: left center;
-}
-
-.center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  text-align: center;
-}
-
-.big {
-  font-size: 32px;
-  font-weight: bold;
-}
-
-button {
-  width: 100%;
-  padding: 15px;
-  border-radius: 30px;
-  border: none;
-  margin-top: 10px;
-  background: #7c8cff;
-  color: white;
-}
-  
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<div class="container">
+<div class="app">
 
-<h2>🍼 Sleep App</h2>
-
-<div class="circle" id="circle">
-  <div class="center">
-    <div id="countdown" class="big">-- min</div>
-    <div>prochaine sieste</div>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="avatar"></div>
+    <div class="learning">🧠 Learning 72%</div>
   </div>
+
+  <!-- CERCLE -->
+  <div class="circle" id="circle">
+    <div class="center">
+      <div id="countdown" class="big">-- min</div>
+      <div class="sub">Next nap</div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button onclick="startSleep()">😴 Start</button>
+    <button onclick="endSleep()">⏰ Wake</button>
+    <button onclick="pauseSleep()">⛔ Pause</button>
+  </div>
+
+  <!-- AJOUT MANUEL -->
+  <div class="manual">
+    <input type="time" id="start">
+    <input type="time" id="end">
+    <button onclick="addManual()">Add</button>
+  </div>
+
 </div>
 
-<button onclick="startSleep()">😴 Début sommeil</button>
-<button onclick="endSleep()">⏰ Réveil</button>
-  
-<div style="margin-top:20px;">
-  <h3>✍️ Ajouter manuellement</h3>
-
-  <input type="time" id="manualStart">
-  <input type="time" id="manualEnd">
-
-  <button onclick="addManual()">Ajouter sommeil</button>
-</div>
-
-</div>
-
-<script>
-
-// 📦 DATA
-let data = JSON.parse(localStorage.getItem("sleepData")) || [];
-
-// 🧠 START / END
-let currentSleep = null;
-
-function startSleep() {
-  currentSleep = {
-    start: new Date().toISOString(),
-    type: "nap"
-  };
-
-  document.getElementById("countdown").innerText = "😴 en cours...";
-}
-
-function endSleep() {
-  if (!currentSleep) return;
-
-  currentSleep.end = new Date().toISOString();
-
-  data.push(currentSleep);
-  localStorage.setItem("sleepData", JSON.stringify(data));
-
-  currentSleep = null;
-
-  drawTimeline();
-  predict();
-}
-
-
-function addManual() {
-  let startVal = document.getElementById("manualStart").value;
-  let endVal = document.getElementById("manualEnd").value;
-
-  if (!startVal || !endVal) {
-    alert("Remplis les deux heures");
-    return;
-  }
-
-  let now = new Date();
-
-  let start = new Date();
-  let [sh, sm] = startVal.split(":");
-  start.setHours(sh, sm, 0);
-
-  let end = new Date();
-  let [eh, em] = endVal.split(":");
-  end.setHours(eh, em, 0);
-
-  data.push({
-    start: start.toISOString(),
-    end: end.toISOString(),
-    type: "nap"
-  });
-
-  localStorage.setItem("sleepData", JSON.stringify(data));
-
-  drawTimeline();
-  predict();
-}
- 
-
-// 🎯 TIMELINE CIRCULAIRE
-function drawTimeline() {
-  let circle = document.getElementById("circle");
-
-  // reset
-  circle.querySelectorAll(".segment").forEach(e => e.remove());
-
-  data.forEach(sleep => {
-    let start = new Date(sleep.start);
-    let end = new Date(sleep.end);
-
-    let startMin = start.getHours()*60 + start.getMinutes();
-    let endMin = end.getHours()*60 + end.getMinutes();
-
-    let angleStart = (startMin / 1440) * 360;
-    let angleEnd = (endMin / 1440) * 360;
-
-    let segment = document.createElement("div");
-    segment.className = "segment";
-
-    segment.style.width = (angleEnd - angleStart) + "deg";
-    segment.style.top = "50%";
-    segment.style.left = "50%";
-    segment.style.transform =
-      `rotate(${angleStart}deg) translateX(120px)`;
-
-    circle.appendChild(segment);
-  });
-}
-
-// 🤖 PRÉDICTION
-function predict() {
-  if (data.length === 0) return;
-
-  let last = data[data.length - 1];
-
-  let lastWake = new Date(last.end);
-
-  let baseWindow = 120;
-
-  let next = new Date(lastWake);
-  next.setMinutes(next.getMinutes() + baseWindow);
-
-  let diff = (next - new Date()) / 60000;
-
-  document.getElementById("countdown").innerText =
-    Math.max(0, Math.round(diff)) + " min";
-}
-
-// INIT
-drawTimeline();
-predict();
-
-</script>
+<script src="data.js"></script>
+<script src="logic.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
