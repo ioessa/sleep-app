@@ -233,4 +233,14 @@ function drawTimeline() {
   });
 }
 
+//COODE TEMPORAIRE
+data.forEach(s => {
+  if (!s.type) {
+    s.type = "nap";
+  }
+});
+
+localStorage.setItem("sleepData", JSON.stringify(data));
+//COODE TEMPORAIRE
+
 renderList();
