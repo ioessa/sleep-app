@@ -31,26 +31,68 @@ function pauseSleep() {
 }
 
 function addManual() {
-  let s = start.value;
-  let e = end.value;
+  let s = document.getElementById("start").value;
+  let e = document.getElementById("end").value;
 
-  let startDate = new Date();
-  let endDate = new Date();
+  if (!s && !e) {
+    alert("Ajoute au moins une heure");
+    return;
+  }
 
-  startDate.setHours(...s.split(":"));
-  endDate.setHours(...e.split(":"));
+  let now = new Date();
 
-  data.push({
-    start: startDate.toISOString(),
-    end: endDate.toISOString(),
-    pauses: []
-  });
+  let startDate = null;
+  let endDate = null;
+
+  if (s) {
+    startDate = new Date();
+    let [sh, sm] = s.split(":");
+    startDate.setHours(sh, sm, 0);
+  }
+
+  if (e) {
+    endDate = new Date();
+    let [eh, em] = e.split(":");
+    endDate.setHours(eh, em, 0);
+  }
+
+  // 🔥 CAS 1 : début seul → sieste ouverte
+  if (startDate && !endDate) {
+    data.push({
+      start: startDate.toISOString(),
+      end: null,
+      type: isNight() ? "night" : "nap",
+      pauses: []
+    });
+  }
+
+  // 🔥 CAS 2 : fin seule → compléter dernière sieste
+  else if (!startDate && endDate) {
+    let last = data[data.length - 1];
+    if (last && !last.end) {
+      last.end = endDate.toISOString();
+    } else {
+      alert("Aucune sieste en cours à compléter");
+      return;
+    }
+  }
+
+  // 🔥 CAS 3 : start + end → sieste complète
+  else {
+    data.push({
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      type: isNight() ? "night" : "nap",
+      pauses: []
+    });
+  }
 
   localStorage.setItem("sleepData", JSON.stringify(data));
 
+  drawTimeline();
   refresh();
+  renderList();
 }
-
 function refresh() {
   let next = predictNext();
   if (!next) return;
