@@ -3,56 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sleep App</title>
 
-<title>Sleep App Pro</title>
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #1c1f4f, #0c0f2e);
+  color: white;
+  font-family: -apple-system;
+}
 
-<link rel="stylesheet" href="style.css">
+.container {
+  text-align: center;
+  padding: 20px;
+}
+
+.circle {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  margin: 40px auto;
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+}
+
+.big {
+  font-size: 32px;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 10px;
+  border-radius: 30px;
+  border: none;
+  background: #7c8cff;
+  color: white;
+}
+
+input, select {
+  width: 48%;
+  padding: 10px;
+  margin-top: 10px;
+}
+</style>
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="avatar"></div>
-    <div class="learning">🧠 Learning 72%</div>
+<h2>🍼 Sleep App</h2>
+
+<div class="circle" id="circle">
+  <div class="center">
+    <div id="countdown" class="big">--</div>
   </div>
+</div>
 
-  <!-- CERCLE -->
-  <div class="circle" id="circle">
-    <div class="center">
-      <div id="countdown" class="big">-- min</div>
-      <div class="sub">Next nap</div>
-    </div>
-  </div>
+<!-- ACTIONS -->
+<button onclick="startSleep('nap')">😴 Sieste</button>
+<button onclick="startSleep('night')">🌙 Nuit</button>
+<button onclick="endSleep()">⏰ Réveil</button>
 
-  <!-- ACTIONS -->
-  <div class="actions">
-    <button onclick="startSleep()">😴 Start</button>
-    <button onclick="endSleep()">⏰ Wake</button>
-    <button onclick="pauseSleep()">⛔ Pause</button>
-    <div id="sleepList" style="margin-top:20px;"></div>
-  </div>
-
-  <!-- AJOUT MANUEL -->
-  <div class="manual">
-
+<!-- MANUEL -->
+<div>
   <select id="sleepType">
     <option value="nap">😴 Sieste</option>
     <option value="night">🌙 Nuit</option>
   </select>
 
+  <br>
+
   <input type="time" id="start">
   <input type="time" id="end">
 
   <button onclick="addManual()">Ajouter</button>
-  </div>
+</div>
+
+<!-- LISTE -->
+<div id="sleepList"></div>
 
 </div>
 
-<script src="data.js"></script>
-<script src="logic.js"></script>
 <script src="app.js"></script>
 
 </body>
