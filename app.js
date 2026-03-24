@@ -109,6 +109,75 @@ function formatTime(date) {
          date.getMinutes().toString().padStart(2,'0');
 }
 
+function renderList() {
+  let container = document.getElementById("sleepList");
+
+  container.innerHTML = "";
+
+  data.forEach((sleep, index) => {
+    let start = new Date(sleep.start);
+    let end = sleep.end ? new Date(sleep.end) : null;
+
+    let div = document.createElement("div");
+    div.style.marginBottom = "10px";
+    div.style.padding = "10px";
+    div.style.background = "rgba(255,255,255,0.05)";
+    div.style.borderRadius = "10px";
+
+    div.innerHTML = `
+      <b>${formatTime(start)}</b>
+      →
+      <b>${end ? formatTime(end) : "..."}</b>
+
+      <br>
+
+      <button onclick="editSleep(${index})">✏️</button>
+      <button onclick="deleteSleep(${index})">🗑️</button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function editSleep(index) {
+  let sleep = data[index];
+
+  let newStart = prompt("Nouvelle heure début (HH:MM)", formatTime(new Date(sleep.start)));
+  let newEnd = prompt("Nouvelle heure fin (HH:MM)", sleep.end ? formatTime(new Date(sleep.end)) : "");
+
+  if (newStart) {
+    let d = new Date(sleep.start);
+    let [h,m] = newStart.split(":");
+    d.setHours(h,m);
+    sleep.start = d.toISOString();
+  }
+
+  if (newEnd) {
+    let d = new Date(sleep.end || new Date());
+    let [h,m] = newEnd.split(":");
+    d.setHours(h,m);
+    sleep.end = d.toISOString();
+  }
+
+  localStorage.setItem("sleepData", JSON.stringify(data));
+
+  drawTimeline();
+  refresh();
+  renderList();
+}
+
+function deleteSleep(index) {
+  if (!confirm("Supprimer cette sieste ?")) return;
+
+  data.splice(index, 1);
+
+  localStorage.setItem("sleepData", JSON.stringify(data));
+
+  drawTimeline();
+  refresh();
+  renderList();
+}
+
 function updateUI(text) {
   document.getElementById("countdown").innerText = text;
 }
@@ -159,3 +228,5 @@ function drawTimeline() {
     }
   });
 }
+
+renderList();
