@@ -55,7 +55,18 @@ function addManual() {
   else {
     data.push({ start: startDate, end: endDate, type });
   }
+  
+// si nuit et heure fin < début → lendemain
+if (startDate && endDate && type === "night") {
+  let sD = new Date(startDate);
+  let eD = new Date(endDate);
 
+  if (eD < sD) {
+    eD.setDate(eD.getDate() + 1);
+    endDate = eD.toISOString();
+  }
+}
+  
   save();
 }
 
@@ -63,21 +74,35 @@ function addManual() {
 function editSleep(i) {
   let s = data[i];
 
-  let currentDate = new Date(s.start).toISOString().split("T")[0];
+  let startDateObj = new Date(s.start);
+  let endDateObj = s.end ? new Date(s.end) : null;
 
-  let newDate = prompt("Date (YYYY-MM-DD)", currentDate);
-  let newStart = prompt("Heure début (HH:MM)", formatTime(s.start));
-  let newEnd = prompt("Heure fin (HH:MM)", s.end ? formatTime(s.end) : "");
+  // valeurs actuelles
+  let startDate = startDateObj.toISOString().split("T")[0];
+  let startTime = formatTime(s.start);
+
+  let endDate = endDateObj
+    ? endDateObj.toISOString().split("T")[0]
+    : startDate;
+
+  let endTime = s.end ? formatTime(s.end) : "";
+
+  // prompts séparés (PROPRE)
+  let newStartDate = prompt("Date début (YYYY-MM-DD)", startDate);
+  let newStartTime = prompt("Heure début (HH:MM)", startTime);
+
+  let newEndDate = prompt("Date fin (YYYY-MM-DD)", endDate);
+  let newEndTime = prompt("Heure fin (HH:MM)", endTime);
+
   let newType = prompt("Type (nap/night)", s.type);
 
-  if (!newDate) newDate = currentDate;
-
-  if (newStart) {
-    s.start = combine(newDate, newStart);
+  // validation
+  if (newStartDate && newStartTime) {
+    s.start = combine(newStartDate, newStartTime);
   }
 
-  if (newEnd) {
-    s.end = combine(newDate, newEnd);
+  if (newEndDate && newEndTime) {
+    s.end = combine(newEndDate, newEndTime);
   }
 
   if (newType === "nap" || newType === "night") {
@@ -168,7 +193,8 @@ function renderList() {
   el.innerHTML = "";
 
   data.forEach((s,i) => {
-    let date = new Date(s.start).toLocaleDateString();
+    let startDate = new Date(s.start).toLocaleDateString();
+    let endDate = s.end ? new Date(s.end).toLocaleDateString() : "";
 
     el.innerHTML += `
       <div class="item">
