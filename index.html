@@ -177,5 +177,11 @@ input, select {
 
 <script src="app.js"></script>
 
+  <script>
+  //Date par défaut = aujourd’hui
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("date").value = today;
+  </script>
+  
 </body>
 </html>
