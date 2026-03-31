@@ -2,7 +2,7 @@
 let data = JSON.parse(localStorage.getItem("sleepData")) || [];
 let current = null;
 
-// ===== AGE BEBE (FIX) =====
+// ===== AGE BEBE =====
 function saveBirth() {
   let d = document.getElementById("birthDate")?.value;
   if (!d) return alert("Ajoute une date");
@@ -30,7 +30,6 @@ function startSleep(type) {
   };
 
   updateUI("😴 en cours...");
-  drawTimeline();
 }
 
 // ===== END =====
@@ -44,7 +43,7 @@ function endSleep() {
   current = null;
 }
 
-// ===== MANUEL =====
+// ===== AJOUT MANUEL =====
 function addManual() {
   let date = document.getElementById("date")?.value;
   let s = document.getElementById("start").value;
@@ -57,7 +56,7 @@ function addManual() {
   let startDate = s ? combine(date, s) : null;
   let endDate = e ? combine(date, e) : null;
 
-  // gestion nuit
+  // gestion nuit (jour +1)
   if (startDate && endDate && type === "night") {
     let sd = new Date(startDate);
     let ed = new Date(endDate);
@@ -135,7 +134,6 @@ function deleteSleep(i) {
 // ===== SAVE =====
 function save() {
   localStorage.setItem("sleepData", JSON.stringify(data));
-  drawTimeline();
   renderList();
   predictNext();
 }
@@ -166,18 +164,12 @@ function renderList() {
   });
 }
 
-// ===== TIMELINE (simple) =====
-function drawTimeline() {
-  // volontairement simple (évite bugs)
-}
-
-// ===== 🧠 PREDICTION MULTI-SIESTES =====
+// ===== 🧠 PREDICTION NAPPER LOGIQUE =====
 function predictNext() {
   if (data.length === 0) return;
 
   let age = getAgeMonths();
 
-  // ===== NOMBRE DE SIESTES PAR AGE =====
   let napsPerDay =
     age < 3 ? 5 :
     age < 6 ? 4 :
@@ -195,57 +187,43 @@ function predictNext() {
     age < 12 ? 50 :
     45;
 
-  // ===== AUJOURD'HUI =====
   let today = new Date().toISOString().split("T")[0];
 
-  let todayNaps = data.filter(s =>
+  let napsDone = data.filter(s =>
     s.type === "nap" &&
     s.start.startsWith(today)
-  );
+  ).length;
 
-  let napsDone = todayNaps.length;
-
-  // ===== DERNIER REVEIL =====
   let last = data[data.length - 1];
   if (!last.end) return;
 
   let currentTime = new Date(last.end);
+  let remaining = napsPerDay - napsDone;
+  if (remaining < 0) remaining = 0;
 
   let predictions = [];
 
-  // ===== NOMBRE DE SIESTES RESTANTES =====
-  let remaining = napsPerDay - napsDone;
-
-  if (remaining < 0) remaining = 0;
-
-  // ===== CALCUL DES SIESTES RESTANTES =====
   for (let i = 0; i < remaining; i++) {
-
     let start = new Date(currentTime);
     start.setMinutes(start.getMinutes() + wakeWindow);
+
+    if (start.getHours() >= 20) break;
 
     let end = new Date(start);
     end.setMinutes(end.getMinutes() + napDuration);
 
-    // STOP si trop tard (après 20h)
-    if (start.getHours() >= 20) break;
-
     predictions.push({ start, end });
-
     currentTime = end;
   }
 
-  // ===== COUCHER (important) =====
   let bedtime = new Date(currentTime);
   bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
 
-  // sécurité : jamais après 21h30
   if (bedtime.getHours() >= 21) {
     bedtime.setHours(21);
     bedtime.setMinutes(30);
   }
 
-  // ===== AFFICHAGE =====
   let el = document.getElementById("nextTime");
 
   if (el) {
@@ -266,7 +244,6 @@ function predictNext() {
     el.innerHTML = html;
   }
 
-  // countdown
   if (predictions.length > 0) {
     let minutes = Math.round((predictions[0].start - new Date()) / 60000);
     updateUI(minutes + " min");
@@ -275,6 +252,7 @@ function predictNext() {
     updateUI("Coucher dans " + minutes + " min");
   }
 }
+
 // ===== UTILS =====
 function combine(date, time) {
   return new Date(date + "T" + time).toISOString();
