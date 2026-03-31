@@ -175,10 +175,14 @@ function drawTimeline() {
 function predictNext() {
   if (data.length === 0) return;
 
-  let last = data[data.length - 1];
-  if (!last.end) return;
-
   let age = getAgeMonths();
+
+  // ===== NOMBRE DE SIESTES PAR AGE =====
+  let napsPerDay =
+    age < 3 ? 5 :
+    age < 6 ? 4 :
+    age < 9 ? 3 :
+    2;
 
   let wakeWindow =
     age < 3 ? 90 :
@@ -191,36 +195,69 @@ function predictNext() {
     age < 12 ? 50 :
     45;
 
-  let lastEnd = new Date(last.end);
+  // ===== AUJOURD'HUI =====
+  let today = new Date().toISOString().split("T")[0];
+
+  let todayNaps = data.filter(s =>
+    s.type === "nap" &&
+    s.start.startsWith(today)
+  );
+
+  let napsDone = todayNaps.length;
+
+  // ===== DERNIER REVEIL =====
+  let last = data[data.length - 1];
+  if (!last.end) return;
+
+  let currentTime = new Date(last.end);
 
   let predictions = [];
-  let currentTime = new Date(lastEnd);
 
-  // 🔥 plusieurs siestes
-  for (let i = 0; i < 4; i++) {
+  // ===== NOMBRE DE SIESTES RESTANTES =====
+  let remaining = napsPerDay - napsDone;
+
+  if (remaining < 0) remaining = 0;
+
+  // ===== CALCUL DES SIESTES RESTANTES =====
+  for (let i = 0; i < remaining; i++) {
+
     let start = new Date(currentTime);
     start.setMinutes(start.getMinutes() + wakeWindow);
 
     let end = new Date(start);
     end.setMinutes(end.getMinutes() + napDuration);
 
+    // STOP si trop tard (après 20h)
+    if (start.getHours() >= 20) break;
+
     predictions.push({ start, end });
 
     currentTime = end;
   }
 
-  // coucher
+  // ===== COUCHER (important) =====
   let bedtime = new Date(currentTime);
   bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
 
-  // affichage
+  // sécurité : jamais après 21h30
+  if (bedtime.getHours() >= 21) {
+    bedtime.setHours(21);
+    bedtime.setMinutes(30);
+  }
+
+  // ===== AFFICHAGE =====
   let el = document.getElementById("nextTime");
+
   if (el) {
     let html = "";
 
+    if (predictions.length === 0) {
+      html += "👉 Dernière fenêtre avant la nuit<br><br>";
+    }
+
     predictions.forEach((p, i) => {
       html += `
-        😴 Sieste ${i+1} : ${formatTime(p.start)} → ${formatTime(p.end)}<br>
+        😴 Sieste ${napsDone + i + 1} : ${formatTime(p.start)} → ${formatTime(p.end)}<br>
       `;
     });
 
@@ -229,10 +266,15 @@ function predictNext() {
     el.innerHTML = html;
   }
 
-  let minutes = Math.round((predictions[0].start - new Date()) / 60000);
-  updateUI(minutes + " min");
+  // countdown
+  if (predictions.length > 0) {
+    let minutes = Math.round((predictions[0].start - new Date()) / 60000);
+    updateUI(minutes + " min");
+  } else {
+    let minutes = Math.round((bedtime - new Date()) / 60000);
+    updateUI("Coucher dans " + minutes + " min");
+  }
 }
-
 // ===== UTILS =====
 function combine(date, time) {
   return new Date(date + "T" + time).toISOString();
