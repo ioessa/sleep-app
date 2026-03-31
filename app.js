@@ -33,7 +33,10 @@ function addManual() {
   let e = document.getElementById("end").value;
   let type = document.getElementById("sleepType").value;
 
-  if (!date) date = new Date().toISOString().split("T")[0];
+  // 👉 défaut = aujourd’hui
+  if (!date) {
+    date = new Date().toISOString().split("T")[0];
+  }
 
   if (!s && !e) return alert("Ajoute une heure");
 
@@ -60,18 +63,21 @@ function addManual() {
 function editSleep(i) {
   let s = data[i];
 
+  let currentDate = new Date(s.start).toISOString().split("T")[0];
+
+  let newDate = prompt("Date (YYYY-MM-DD)", currentDate);
   let newStart = prompt("Heure début (HH:MM)", formatTime(s.start));
   let newEnd = prompt("Heure fin (HH:MM)", s.end ? formatTime(s.end) : "");
   let newType = prompt("Type (nap/night)", s.type);
 
+  if (!newDate) newDate = currentDate;
+
   if (newStart) {
-    let date = new Date(s.start).toISOString().split("T")[0];
-    s.start = combine(date, newStart);
+    s.start = combine(newDate, newStart);
   }
 
   if (newEnd) {
-    let date = new Date(s.start).toISOString().split("T")[0];
-    s.end = combine(date, newEnd);
+    s.end = combine(newDate, newEnd);
   }
 
   if (newType === "nap" || newType === "night") {
