@@ -1,51 +1,48 @@
+// ===== DATA =====
 let data = JSON.parse(localStorage.getItem("sleepData")) || [];
 let current = null;
 
-// 🔴 ANIMATION LOOP
-setInterval(() => {
-  if (current) {
-    updateUI("😴 en cours " + getLiveDuration());
-  }
-}, 1000);
-
-// START
+// ===== START =====
 function startSleep(type) {
   current = {
     start: new Date().toISOString(),
     end: null,
-    type,
+    type: type,
     pauses: []
   };
 
+  updateUI("😴 en cours...");
   drawTimeline();
 }
 
-// END
+// ===== END =====
 function endSleep() {
-  if (!current) return;
+  if (!current) {
+    alert("Aucun sommeil en cours");
+    return;
+  }
 
   current.end = new Date().toISOString();
   data.push(current);
 
-  localStorage.setItem("sleepData", JSON.stringify(data));
+  save();
 
   current = null;
-
-  drawTimeline();
-  renderList();
-  predictNext();
 }
 
-// AJOUT MANUEL
+// ===== MANUEL =====
 function addManual() {
   let s = document.getElementById("start").value;
   let e = document.getElementById("end").value;
   let type = document.getElementById("sleepType").value;
 
+  if (!s && !e) {
+    alert("Ajoute au moins une heure");
+    return;
+  }
+
   let startDate = s ? parseTime(s) : null;
   let endDate = e ? parseTime(e) : null;
-
-  if (!s && !e) return alert("Ajoute une heure");
 
   if (startDate && !endDate) {
     data.push({ start: startDate, end: null, type });
@@ -53,7 +50,12 @@ function addManual() {
 
   else if (!startDate && endDate) {
     let last = data[data.length - 1];
-    if (last && !last.end) last.end = endDate;
+    if (last && !last.end) {
+      last.end = endDate;
+    } else {
+      alert("Pas de sieste en cours");
+      return;
+    }
   }
 
   else {
@@ -63,9 +65,19 @@ function addManual() {
   save();
 }
 
-// 🔵 TIMELINE + animation sieste en cours
+// ===== SAVE =====
+function save() {
+  localStorage.setItem("sleepData", JSON.stringify(data));
+  drawTimeline();
+  renderList();
+  predictNext();
+}
+
+// ===== TIMELINE =====
 function drawTimeline() {
   const circle = document.getElementById("circle");
+  if (!circle) return;
+
   circle.querySelectorAll(".segment").forEach(e => e.remove());
 
   const radius = 120;
@@ -73,10 +85,10 @@ function drawTimeline() {
   // historique
   data.forEach(sleep => {
     if (!sleep.end) return;
-    drawSegment(sleep, radius, false);
+    drawSegment(sleep, radius);
   });
 
-  // 🔴 sieste en cours
+  // courant
   if (current) {
     drawSegment({
       start: current.start,
@@ -86,8 +98,7 @@ function drawTimeline() {
   }
 }
 
-// segment
-function drawSegment(sleep, radius, isLive) {
+function drawSegment(sleep, radius, live = false) {
   let start = new Date(sleep.start);
   let end = new Date(sleep.end);
 
@@ -101,6 +112,7 @@ function drawSegment(sleep, radius, isLive) {
     let angle = ((startMin + i) / 1440) * 360;
 
     let dot = document.createElement("div");
+    dot.className = "segment";
 
     dot.style.width = "6px";
     dot.style.height = "6px";
@@ -109,7 +121,7 @@ function drawSegment(sleep, radius, isLive) {
     dot.style.background =
       sleep.type === "night" ? "#ffb86c" : "#7c8cff";
 
-    if (isLive) {
+    if (live) {
       dot.style.boxShadow = "0 0 10px #fff";
     }
 
@@ -124,14 +136,42 @@ function drawSegment(sleep, radius, isLive) {
   }
 }
 
-// 🧠 IA PRÉDICTION
+// ===== LISTE =====
+function renderList() {
+  let el = document.getElementById("sleepList");
+  if (!el) return;
+
+  el.innerHTML = "";
+
+  data.forEach((s,i) => {
+    el.innerHTML += `
+      <div class="item">
+        ${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}<br>
+        ${formatTime(s.start)} → ${s.end ? formatTime(s.end) : "..."}
+        <br>
+        <button onclick="deleteSleep(${i})">❌</button>
+      </div>
+    `;
+  });
+}
+
+// ===== DELETE =====
+function deleteSleep(i) {
+  data.splice(i,1);
+  save();
+}
+
+// ===== PREDICTION =====
 function predictNext() {
   if (data.length < 2) return;
 
   let windows = [];
 
   for (let i = 1; i < data.length; i++) {
-    let w = (new Date(data[i].start) - new Date(data[i-1].end)) / 60000;
+    let prevEnd = new Date(data[i-1].end);
+    let start = new Date(data[i].start);
+
+    let w = (start - prevEnd) / 60000;
     if (w > 30 && w < 400) windows.push(w);
   }
 
@@ -141,10 +181,19 @@ function predictNext() {
   let next = new Date(last.end);
   next.setMinutes(next.getMinutes() + avg);
 
+  // affichage
+  let txt = formatTime(next);
+
+  let el = document.getElementById("nextTime");
+  if (el) el.innerText = txt;
+
+  let countdown = Math.round((next - new Date())/60000);
+  updateUI(countdown + " min");
+
   scheduleNotification(next);
 }
 
-// 🔔 NOTIFICATIONS
+// ===== NOTIF =====
 function scheduleNotification(date) {
   if (!("Notification" in window)) return;
 
@@ -153,20 +202,15 @@ function scheduleNotification(date) {
 
     let delay = date - new Date();
 
-    if (delay > 0) {
+    if (delay > 0 && delay < 86400000) {
       setTimeout(() => {
-        new Notification("😴 Prochaine sieste bientôt !");
+        new Notification("😴 Prochaine sieste !");
       }, delay);
     }
   });
 }
 
-// 🧮 UTILS
-function getLiveDuration() {
-  let diff = (new Date() - new Date(current.start)) / 60000;
-  return Math.floor(diff) + " min";
-}
-
+// ===== UTILS =====
 function parseTime(t) {
   let d = new Date();
   let [h,m] = t.split(":");
@@ -180,35 +224,12 @@ function formatTime(d) {
          d.getMinutes().toString().padStart(2,'0');
 }
 
-function save() {
-  localStorage.setItem("sleepData", JSON.stringify(data));
-  drawTimeline();
-  renderList();
-  predictNext();
+function updateUI(text) {
+  let el = document.getElementById("countdown");
+  if (el) el.innerText = text;
 }
 
-// LISTE
-function renderList() {
-  let el = document.getElementById("sleepList");
-  el.innerHTML = "";
-
-  data.forEach((s,i) => {
-    el.innerHTML += `
-      <div>
-      ${s.type === "night" ? "🌙" : "😴"}
-      ${formatTime(s.start)} → ${s.end ? formatTime(s.end) : "..."}
-      <button onclick="deleteSleep(${i})">❌</button>
-      </div>
-    `;
-  });
-}
-
-function deleteSleep(i) {
-  data.splice(i,1);
-  save();
-}
-
-// INIT
+// ===== INIT =====
 drawTimeline();
 renderList();
 predictNext();
