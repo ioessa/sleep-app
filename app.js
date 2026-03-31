@@ -2,13 +2,20 @@
 let data = JSON.parse(localStorage.getItem("sleepData")) || [];
 let current = null;
 
-// ===== AGE BEBE =====
+// ===== AGE BEBE (FIX PERSISTANT) =====
 function saveBirth() {
   let d = document.getElementById("birthDate")?.value;
   if (!d) return alert("Ajoute une date");
 
   localStorage.setItem("birthDate", d);
   alert("Âge enregistré !");
+}
+
+function loadBirth() {
+  let d = localStorage.getItem("birthDate");
+  if (d) {
+    document.getElementById("birthDate").value = d;
+  }
 }
 
 function getAgeMonths() {
@@ -30,6 +37,7 @@ function startSleep(type) {
   };
 
   updateUI("😴 en cours...");
+  drawTimeline();
 }
 
 // ===== END =====
@@ -45,18 +53,18 @@ function endSleep() {
 
 // ===== AJOUT MANUEL =====
 function addManual() {
-  let date = document.getElementById("date")?.value;
+  let dateInput = document.getElementById("date");
+  let date = dateInput.value;
+
   let s = document.getElementById("start").value;
   let e = document.getElementById("end").value;
   let type = document.getElementById("sleepType").value;
 
   if (!date) date = new Date().toISOString().split("T")[0];
-  if (!s && !e) return alert("Ajoute une heure");
 
   let startDate = s ? combine(date, s) : null;
   let endDate = e ? combine(date, e) : null;
 
-  // gestion nuit (jour +1)
   if (startDate && endDate && type === "night") {
     let sd = new Date(startDate);
     let ed = new Date(endDate);
@@ -78,71 +86,17 @@ function addManual() {
   save();
 }
 
-// ===== EDIT =====
-function editSleep(i) {
-  let s = data[i];
-
-  let startDate = new Date(s.start).toISOString().split("T")[0];
-  let startTime = formatTime(s.start);
-
-  let endDate = s.end
-    ? new Date(s.end).toISOString().split("T")[0]
-    : startDate;
-
-  let endTime = s.end ? formatTime(s.end) : "";
-
-  let newStartDate = prompt("Date début (YYYY-MM-DD)", startDate);
-  let newStartTime = prompt("Heure début (HH:MM)", startTime);
-
-  let newEndDate = prompt("Date fin (YYYY-MM-DD)", endDate);
-  let newEndTime = prompt("Heure fin (HH:MM)", endTime);
-
-  let newType = prompt("Type (nap/night)", s.type);
-
-  if (newStartDate && newStartTime) {
-    s.start = combine(newStartDate, newStartTime);
-  }
-
-  if (newEndDate && newEndTime) {
-    let endISO = combine(newEndDate, newEndTime);
-
-    if (newType === "night") {
-      let sd = new Date(s.start);
-      let ed = new Date(endISO);
-      if (ed < sd) {
-        ed.setDate(ed.getDate() + 1);
-        endISO = ed.toISOString();
-      }
-    }
-
-    s.end = endISO;
-  }
-
-  if (newType === "nap" || newType === "night") {
-    s.type = newType;
-  }
-
-  save();
-}
-
-// ===== DELETE =====
-function deleteSleep(i) {
-  data.splice(i, 1);
-  save();
-}
-
 // ===== SAVE =====
 function save() {
   localStorage.setItem("sleepData", JSON.stringify(data));
   renderList();
+  drawTimeline();
   predictNext();
 }
 
 // ===== LISTE =====
 function renderList() {
   let el = document.getElementById("sleepList");
-  if (!el) return;
-
   el.innerHTML = "";
 
   data.forEach((s, i) => {
@@ -152,19 +106,58 @@ function renderList() {
     el.innerHTML += `
       <div class="item">
         <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
-        
         📅 ${startDate} ${formatTime(s.start)}
         ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
-        
-        <br><br>
-        <button onclick="editSleep(${i})">✏️ Modifier</button>
-        <button onclick="deleteSleep(${i})">❌</button>
       </div>
     `;
   });
 }
 
-// ===== 🧠 PREDICTION NAPPER LOGIQUE =====
+// ===== 🎯 TIMELINE CERCLE =====
+function drawTimeline() {
+  const circle = document.getElementById("circle");
+  if (!circle) return;
+
+  circle.innerHTML = "";
+
+  const radius = 120;
+
+  data.forEach(s => {
+    if (!s.end) return;
+
+    let start = new Date(s.start);
+    let end = new Date(s.end);
+
+    let startMin = start.getHours() * 60 + start.getMinutes();
+    let endMin = end.getHours() * 60 + end.getMinutes();
+
+    let duration = endMin - startMin;
+    if (duration < 0) duration += 1440;
+
+    for (let i = 0; i < duration; i += 5) {
+      let angle = ((startMin + i) / 1440) * 360;
+
+      let dot = document.createElement("div");
+      dot.style.width = "5px";
+      dot.style.height = "5px";
+      dot.style.borderRadius = "50%";
+      dot.style.position = "absolute";
+
+      dot.style.background =
+        s.type === "night" ? "#ffb86c" : "#7c8cff";
+
+      let x = radius * Math.cos((angle - 90) * Math.PI / 180);
+      let y = radius * Math.sin((angle - 90) * Math.PI / 180);
+
+      dot.style.left = (150 + x) + "px";
+      dot.style.top = (150 + y) + "px";
+
+      circle.appendChild(dot);
+    }
+  });
+}
+
+// ===== 🧠 PREDICTION =====
 function predictNext() {
   if (data.length === 0) return;
 
@@ -190,8 +183,7 @@ function predictNext() {
   let today = new Date().toISOString().split("T")[0];
 
   let napsDone = data.filter(s =>
-    s.type === "nap" &&
-    s.start.startsWith(today)
+    s.type === "nap" && s.start.startsWith(today)
   ).length;
 
   let last = data[data.length - 1];
@@ -229,27 +221,12 @@ function predictNext() {
   if (el) {
     let html = "";
 
-    if (predictions.length === 0) {
-      html += "👉 Dernière fenêtre avant la nuit<br><br>";
-    }
-
     predictions.forEach((p, i) => {
-      html += `
-        😴 Sieste ${napsDone + i + 1} : ${formatTime(p.start)} → ${formatTime(p.end)}<br>
-      `;
+      html += `😴 Sieste ${napsDone + i + 1} : ${formatTime(p.start)} → ${formatTime(p.end)}<br>`;
     });
 
     html += `<br>🌙 Coucher : ${formatTime(bedtime)}`;
-
     el.innerHTML = html;
-  }
-
-  if (predictions.length > 0) {
-    let minutes = Math.round((predictions[0].start - new Date()) / 60000);
-    updateUI(minutes + " min");
-  } else {
-    let minutes = Math.round((bedtime - new Date()) / 60000);
-    updateUI("Coucher dans " + minutes + " min");
   }
 }
 
@@ -270,5 +247,13 @@ function updateUI(text) {
 }
 
 // ===== INIT =====
-renderList();
-predictNext();
+window.onload = () => {
+  // 📅 date du jour auto
+  let today = new Date().toISOString().split("T")[0];
+  document.getElementById("date").value = today;
+
+  loadBirth();
+  renderList();
+  drawTimeline();
+  predictNext();
+};
