@@ -105,38 +105,49 @@ function renderList() {
     let startDate = new Date(s.start).toLocaleDateString();
     let endDate = s.end ? new Date(s.end).toLocaleDateString() : "";
 
-    el.innerHTML += `
-      <div class="item">
-        <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
-        
-        📅 ${startDate} ${formatTime(s.start)}
-        ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
-        
-        <br><br>
-        <button onclick="editSleep(${i})">✏️ Modifier</button>
-        <button onclick="deleteSleep(${i})">❌ Supprimer</button>
-      </div>
+    let item = document.createElement("div");
+    item.className = "item";
+
+    item.innerHTML = `
+      <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
+      📅 ${startDate} ${formatTime(s.start)}
+      ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
+      <br><br>
     `;
+
+    let editBtn = document.createElement("button");
+    editBtn.innerText = "✏️ Modifier";
+    editBtn.onclick = () => editSleep(i);
+
+    let delBtn = document.createElement("button");
+    delBtn.innerText = "❌ Supprimer";
+    delBtn.onclick = () => deleteSleep(i);
+
+    item.appendChild(editBtn);
+    item.appendChild(delBtn);
+
+    el.appendChild(item);
   });
 }
 
 function editSleep(i) {
   let s = data[i];
 
-  let startDate = new Date(s.start).toISOString().split("T")[0];
-  let startTime = formatTime(s.start);
+  let start = new Date(s.start);
+  let end = s.end ? new Date(s.end) : null;
 
-  let endDate = s.end
-    ? new Date(s.end).toISOString().split("T")[0]
-    : startDate;
+  let newStartDate = prompt("Date début (YYYY-MM-DD)", start.toISOString().split("T")[0]);
+  let newStartTime = prompt("Heure début (HH:MM)", formatTime(start));
 
-  let endTime = s.end ? formatTime(s.end) : "";
+  let newEndDate = prompt(
+    "Date fin (YYYY-MM-DD)",
+    end ? end.toISOString().split("T")[0] : newStartDate
+  );
 
-  let newStartDate = prompt("Date début (YYYY-MM-DD)", startDate);
-  let newStartTime = prompt("Heure début (HH:MM)", startTime);
-
-  let newEndDate = prompt("Date fin (YYYY-MM-DD)", endDate);
-  let newEndTime = prompt("Heure fin (HH:MM)", endTime);
+  let newEndTime = prompt(
+    "Heure fin (HH:MM)",
+    end ? formatTime(end) : ""
+  );
 
   let newType = prompt("Type (nap/night)", s.type);
 
@@ -147,6 +158,7 @@ function editSleep(i) {
   if (newEndDate && newEndTime) {
     let endISO = combine(newEndDate, newEndTime);
 
+    // correction nuit
     if (newType === "night") {
       let sd = new Date(s.start);
       let ed = new Date(endISO);
