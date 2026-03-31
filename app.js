@@ -7,7 +7,7 @@ function startSleep(type) {
   current = {
     start: new Date().toISOString(),
     end: null,
-    type: type,
+    type,
     pauses: []
   };
 
@@ -17,32 +17,28 @@ function startSleep(type) {
 
 // ===== END =====
 function endSleep() {
-  if (!current) {
-    alert("Aucun sommeil en cours");
-    return;
-  }
+  if (!current) return alert("Aucun sommeil en cours");
 
   current.end = new Date().toISOString();
   data.push(current);
 
   save();
-
   current = null;
 }
 
-// ===== MANUEL =====
+// ===== MANUEL + DATE =====
 function addManual() {
+  let date = document.getElementById("date").value;
   let s = document.getElementById("start").value;
   let e = document.getElementById("end").value;
   let type = document.getElementById("sleepType").value;
 
-  if (!s && !e) {
-    alert("Ajoute au moins une heure");
-    return;
-  }
+  if (!date) date = new Date().toISOString().split("T")[0];
 
-  let startDate = s ? parseTime(s) : null;
-  let endDate = e ? parseTime(e) : null;
+  if (!s && !e) return alert("Ajoute une heure");
+
+  let startDate = s ? combine(date, s) : null;
+  let endDate = e ? combine(date, e) : null;
 
   if (startDate && !endDate) {
     data.push({ start: startDate, end: null, type });
@@ -50,18 +46,44 @@ function addManual() {
 
   else if (!startDate && endDate) {
     let last = data[data.length - 1];
-    if (last && !last.end) {
-      last.end = endDate;
-    } else {
-      alert("Pas de sieste en cours");
-      return;
-    }
+    if (last && !last.end) last.end = endDate;
   }
 
   else {
     data.push({ start: startDate, end: endDate, type });
   }
 
+  save();
+}
+
+// ===== EDIT =====
+function editSleep(i) {
+  let s = data[i];
+
+  let newStart = prompt("Heure début (HH:MM)", formatTime(s.start));
+  let newEnd = prompt("Heure fin (HH:MM)", s.end ? formatTime(s.end) : "");
+  let newType = prompt("Type (nap/night)", s.type);
+
+  if (newStart) {
+    let date = new Date(s.start).toISOString().split("T")[0];
+    s.start = combine(date, newStart);
+  }
+
+  if (newEnd) {
+    let date = new Date(s.start).toISOString().split("T")[0];
+    s.end = combine(date, newEnd);
+  }
+
+  if (newType === "nap" || newType === "night") {
+    s.type = newType;
+  }
+
+  save();
+}
+
+// ===== DELETE =====
+function deleteSleep(i) {
+  data.splice(i,1);
   save();
 }
 
@@ -82,13 +104,11 @@ function drawTimeline() {
 
   const radius = 120;
 
-  // historique
-  data.forEach(sleep => {
-    if (!sleep.end) return;
-    drawSegment(sleep, radius);
+  data.forEach(s => {
+    if (!s.end) return;
+    drawSegment(s, radius);
   });
 
-  // courant
   if (current) {
     drawSegment({
       start: current.start,
@@ -121,9 +141,7 @@ function drawSegment(sleep, radius, live = false) {
     dot.style.background =
       sleep.type === "night" ? "#ffb86c" : "#7c8cff";
 
-    if (live) {
-      dot.style.boxShadow = "0 0 10px #fff";
-    }
+    if (live) dot.style.boxShadow = "0 0 10px #fff";
 
     let x = radius * Math.cos((angle - 90) * Math.PI / 180);
     let y = radius * Math.sin((angle - 90) * Math.PI / 180);
@@ -136,7 +154,7 @@ function drawSegment(sleep, radius, live = false) {
   }
 }
 
-// ===== LISTE =====
+// ===== LISTE (AVEC EDIT) =====
 function renderList() {
   let el = document.getElementById("sleepList");
   if (!el) return;
@@ -144,21 +162,19 @@ function renderList() {
   el.innerHTML = "";
 
   data.forEach((s,i) => {
+    let date = new Date(s.start).toLocaleDateString();
+
     el.innerHTML += `
       <div class="item">
-        ${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}<br>
+        <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
+        📅 ${date}<br>
         ${formatTime(s.start)} → ${s.end ? formatTime(s.end) : "..."}
-        <br>
+        <br><br>
+        <button onclick="editSleep(${i})">✏️ Modifier</button>
         <button onclick="deleteSleep(${i})">❌</button>
       </div>
     `;
   });
-}
-
-// ===== DELETE =====
-function deleteSleep(i) {
-  data.splice(i,1);
-  save();
 }
 
 // ===== PREDICTION =====
@@ -168,10 +184,7 @@ function predictNext() {
   let windows = [];
 
   for (let i = 1; i < data.length; i++) {
-    let prevEnd = new Date(data[i-1].end);
-    let start = new Date(data[i].start);
-
-    let w = (start - prevEnd) / 60000;
+    let w = (new Date(data[i].start) - new Date(data[i-1].end)) / 60000;
     if (w > 30 && w < 400) windows.push(w);
   }
 
@@ -181,7 +194,6 @@ function predictNext() {
   let next = new Date(last.end);
   next.setMinutes(next.getMinutes() + avg);
 
-  // affichage
   let txt = formatTime(next);
 
   let el = document.getElementById("nextTime");
@@ -189,28 +201,14 @@ function predictNext() {
 
   let countdown = Math.round((next - new Date())/60000);
   updateUI(countdown + " min");
-
-  scheduleNotification(next);
-}
-
-// ===== NOTIF =====
-function scheduleNotification(date) {
-  if (!("Notification" in window)) return;
-
-  Notification.requestPermission().then(p => {
-    if (p !== "granted") return;
-
-    let delay = date - new Date();
-
-    if (delay > 0 && delay < 86400000) {
-      setTimeout(() => {
-        new Notification("😴 Prochaine sieste !");
-      }, delay);
-    }
-  });
 }
 
 // ===== UTILS =====
+function combine(date, time) {
+  let d = new Date(date + "T" + time);
+  return d.toISOString();
+}
+
 function parseTime(t) {
   let d = new Date();
   let [h,m] = t.split(":");
