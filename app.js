@@ -196,16 +196,18 @@ function renderList() {
     let startDate = new Date(s.start).toLocaleDateString();
     let endDate = s.end ? new Date(s.end).toLocaleDateString() : "";
 
-    el.innerHTML += `
-      <div class="item">
-        <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
-        📅 ${date}<br>
-        ${formatTime(s.start)} → ${s.end ? formatTime(s.end) : "..."}
-        <br><br>
-        <button onclick="editSleep(${i})">✏️ Modifier</button>
-        <button onclick="deleteSleep(${i})">❌</button>
-      </div>
-    `;
+   el.innerHTML += `
+  <div class="item">
+    <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
+    
+    📅 ${startDate} ${formatTime(s.start)}
+    ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
+    
+    <br><br>
+    <button onclick="editSleep(${i})">✏️ Modifier</button>
+    <button onclick="deleteSleep(${i})">❌</button>
+  </div>
+`;
   });
 }
 
