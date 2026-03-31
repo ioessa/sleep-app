@@ -1,195 +1,118 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Sleep App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Sleep App Pro</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f1226;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
 
-<style>
+    h1 {
+      margin-bottom: 10px;
+    }
 
-body {
-  margin: 0;
-  font-family: -apple-system;
-  background: radial-gradient(circle at top, #1b1f4a, #0b0e2a);
-  color: white;
-}
+    .card {
+      background: #1c1f3a;
+      padding: 15px;
+      border-radius: 15px;
+      margin: 15px 0;
+    }
 
-/* HEADER */
-.header {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px;
-  font-size: 14px;
-  opacity: 0.8;
-}
+    input, select, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
 
-/* CERCLE */
-.circle {
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  margin: 20px auto;
-  position: relative;
+    button {
+      background: #7c8cff;
+      color: white;
+      cursor: pointer;
+    }
 
-  background: radial-gradient(circle, rgba(255,255,255,0.05), transparent);
-  box-shadow: 0 0 40px rgba(124,140,255,0.2);
-}
+    button:hover {
+      opacity: 0.9;
+    }
 
-/* centre */
-.center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  text-align: center;
-}
+    .item {
+      background: #2a2f5a;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
 
-.big {
-  font-size: 34px;
-  font-weight: bold;
-}
+    #nextTime {
+      font-size: 16px;
+      line-height: 1.6;
+    }
 
-.sub {
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-/* boutons */
-.actions {
-  padding: 20px;
-}
-
-button {
-  width: 100%;
-  padding: 16px;
-  border-radius: 30px;
-  border: none;
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.btn-nap {
-  background: linear-gradient(45deg, #7c8cff, #5a6cff);
-}
-
-.btn-night {
-  background: linear-gradient(45deg, #ffb86c, #ff9f40);
-}
-
-.btn-stop {
-  background: rgba(255,255,255,0.1);
-}
-
-/* carte prédiction */
-.card {
-  margin: 20px;
-  padding: 15px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.05);
-}
-
-.card h3 {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.7;
-}
-
-.card .time {
-  font-size: 22px;
-  margin-top: 5px;
-}
-
-/* manuel */
-.manual {
-  padding: 20px;
-}
-
-input, select {
-  width: 48%;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  margin-top: 10px;
-}
-
-/* liste */
-#sleepList {
-  padding: 20px;
-}
-
-.item {
-  background: rgba(255,255,255,0.05);
-  padding: 10px;
-  border-radius: 12px;
-  margin-bottom: 10px;
-}
-
-</style>
+    #countdown {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #ffb86c;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div>🍼 Baby Sleep</div>
-  <div>🧠 Learning</div>
-</div>
+  <h1>😴 Sleep App</h1>
 
-<div class="circle" id="circle">
-  <div class="center">
-    <div id="countdown" class="big">--</div>
-    <div class="sub">next sleep</div>
+  <!-- 👶 PROFIL -->
+  <div class="card">
+    <h3>👶 Bébé</h3>
+    <input type="date" id="birthDate">
+    <button onclick="saveBirth()">Enregistrer âge</button>
   </div>
-</div>
 
-<!-- CARD -->
-<div class="card">
-  <h3>Prochaine sieste</h3>
-  <div id="nextTime" class="time">--</div>
-</div>
+  <!-- ▶️ ACTIONS -->
+  <div class="card">
+    <h3>Actions</h3>
+    <button onclick="startSleep('nap')">😴 Début sieste</button>
+    <button onclick="startSleep('night')">🌙 Début nuit</button>
+    <button onclick="endSleep()">⏹ Fin</button>
 
-<!-- AGE -->
-<div class="card">
-  <h3>👶 Bébé</h3>
-  <input type="date" id="birthDate">
-  <button onclick="saveBirth()">OK</button>
-  <div id="babyAge"></div>
-</div>
-  
-<!-- ACTIONS -->
-<div class="actions">
-  <button class="btn-nap" onclick="startSleep('nap')">😴 Sieste</button>
-  <button class="btn-night" onclick="startSleep('night')">🌙 Nuit</button>
-  <button class="btn-stop" onclick="endSleep()">⏰ Réveil</button>
-</div>
+    <div id="countdown"></div>
+  </div>
 
-<!-- MANUEL -->
-<div class="manual">
-  <select id="sleepType">
-    <option value="nap">😴 Sieste</option>
-    <option value="night">🌙 Nuit</option>
-  </select>
+  <!-- ➕ AJOUT MANUEL -->
+  <div class="card">
+    <h3>➕ Ajouter manuellement</h3>
 
-  <br>
+    <input type="date" id="date"><br>
+    <input type="time" id="start">
+    <input type="time" id="end"><br>
 
-  <input type="date" id="date">
-  <input type="time" id="start">
-  <input type="time" id="end">
+    <select id="sleepType">
+      <option value="nap">😴 Sieste</option>
+      <option value="night">🌙 Nuit</option>
+    </select><br>
 
-  <button onclick="addManual()">Ajouter</button>
-</div>
+    <button onclick="addManual()">Ajouter</button>
+  </div>
 
-<!-- LISTE -->
-<div id="sleepList"></div>
+  <!-- 🔮 PREDICTIONS -->
+  <div class="card">
+    <h3>🔮 Prévisions</h3>
+    <div id="nextTime">Aucune donnée</div>
+  </div>
 
-<script src="app.js"></script>
+  <!-- 📋 LISTE -->
+  <div class="card">
+    <h3>📋 Historique</h3>
+    <div id="sleepList"></div>
+  </div>
 
-  <script>
-  //Date par défaut = aujourd’hui
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("date").value = today;
-  </script>
-  
+  <script src="app.js"></script>
+
 </body>
 </html>
