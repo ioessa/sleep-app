@@ -213,28 +213,91 @@ function renderList() {
 
 // ===== PREDICTION =====
 function predictNext() {
-  if (data.length < 2) return;
+  if (data.length === 0) return;
 
+  let last = data[data.length - 1];
+  if (!last.end) return;
+
+  let lastEnd = new Date(last.end);
+
+  // 🧠 calcul fenêtre d'éveil moyenne
   let windows = [];
 
   for (let i = 1; i < data.length; i++) {
+    if (!data[i-1].end) continue;
+
     let w = (new Date(data[i].start) - new Date(data[i-1].end)) / 60000;
-    if (w > 30 && w < 400) windows.push(w);
+
+    if (w > 30 && w < 300) windows.push(w);
   }
 
-  let avg = windows.reduce((a,b)=>a+b,0)/windows.length || 120;
+  let wakeWindow = windows.reduce((a,b)=>a+b,0)/windows.length || 120;
 
-  let last = data[data.length - 1];
-  let next = new Date(last.end);
-  next.setMinutes(next.getMinutes() + avg);
+  // 🧠 durée sieste moyenne
+  let naps = data.filter(s => s.type === "nap" && s.end);
 
-  let txt = formatTime(next);
+  let napDurations = naps.map(n =>
+    (new Date(n.end) - new Date(n.start)) / 60000
+  );
 
+  let avgNap = napDurations.reduce((a,b)=>a+b,0)/napDurations.length || 60;
+
+  // 🧠 générer planning
+  let predictions = [];
+
+  let currentTime = new Date(lastEnd);
+
+  for (let i = 0; i < 4; i++) {
+    let napStart = new Date(currentTime);
+    napStart.setMinutes(napStart.getMinutes() + wakeWindow);
+
+    let napEnd = new Date(napStart);
+    napEnd.setMinutes(napEnd.getMinutes() + avgNap);
+
+    predictions.push({
+      type: "nap",
+      start: napStart,
+      end: napEnd
+    });
+
+    currentTime = napEnd;
+  }
+
+  // 🌙 coucher nuit
+  let bedtime = new Date(currentTime);
+  bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
+
+  // ===== UI =====
+  displayPredictions(predictions, bedtime);
+
+  // countdown = prochaine sieste
+  let next = predictions[0].start;
+  let minutes = Math.round((next - new Date())/60000);
+  updateUI(minutes + " min");
+}
+
+function displayPredictions(predictions, bedtime) {
   let el = document.getElementById("nextTime");
-  if (el) el.innerText = txt;
+  if (!el) return;
 
-  let countdown = Math.round((next - new Date())/60000);
-  updateUI(countdown + " min");
+  let html = "";
+
+  predictions.forEach((p, i) => {
+    html += `
+      <div style="margin-bottom:8px">
+        😴 Sieste ${i+1} :
+        ${formatTime(p.start)} → ${formatTime(p.end)}
+      </div>
+    `;
+  });
+
+  html += `
+    <div style="margin-top:10px">
+      🌙 Coucher estimé : ${formatTime(bedtime)}
+    </div>
+  `;
+
+  el.innerHTML = html;
 }
 
 // ===== UTILS =====
