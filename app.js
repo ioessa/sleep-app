@@ -2,6 +2,23 @@
 let data = JSON.parse(localStorage.getItem("sleepData")) || [];
 let current = null;
 
+// ===== PROFIL (AGE BEBE SIMPLE) =====
+function saveBirth() {
+  let d = document.getElementById("birthDate")?.value;
+  if (!d) return alert("Ajoute une date de naissance");
+  localStorage.setItem("birthDate", d);
+}
+
+function getAgeMonths() {
+  let d = localStorage.getItem("birthDate");
+  if (!d) return 3;
+
+  let birth = new Date(d);
+  let now = new Date();
+
+  return (now - birth) / (1000 * 60 * 60 * 24 * 30);
+}
+
 // ===== START =====
 function startSleep(type) {
   current = {
@@ -26,47 +43,40 @@ function endSleep() {
   current = null;
 }
 
-// ===== MANUEL + DATE =====
+// ===== AJOUT MANUEL (AVEC DATE) =====
 function addManual() {
-  let date = document.getElementById("date").value;
+  let date = document.getElementById("date")?.value;
   let s = document.getElementById("start").value;
   let e = document.getElementById("end").value;
   let type = document.getElementById("sleepType").value;
 
-  // 👉 défaut = aujourd’hui
-  if (!date) {
-    date = new Date().toISOString().split("T")[0];
-  }
-
+  if (!date) date = new Date().toISOString().split("T")[0];
   if (!s && !e) return alert("Ajoute une heure");
 
   let startDate = s ? combine(date, s) : null;
   let endDate = e ? combine(date, e) : null;
 
+  // gestion nuit (passe au lendemain)
+  if (startDate && endDate && type === "night") {
+    let sd = new Date(startDate);
+    let ed = new Date(endDate);
+    if (ed < sd) {
+      ed.setDate(ed.getDate() + 1);
+      endDate = ed.toISOString();
+    }
+  }
+
   if (startDate && !endDate) {
     data.push({ start: startDate, end: null, type });
   }
-
   else if (!startDate && endDate) {
     let last = data[data.length - 1];
     if (last && !last.end) last.end = endDate;
   }
-
   else {
     data.push({ start: startDate, end: endDate, type });
   }
-  
-// si nuit et heure fin < début → lendemain
-if (startDate && endDate && type === "night") {
-  let sD = new Date(startDate);
-  let eD = new Date(endDate);
 
-  if (eD < sD) {
-    eD.setDate(eD.getDate() + 1);
-    endDate = eD.toISOString();
-  }
-}
-  
   save();
 }
 
@@ -74,20 +84,15 @@ if (startDate && endDate && type === "night") {
 function editSleep(i) {
   let s = data[i];
 
-  let startDateObj = new Date(s.start);
-  let endDateObj = s.end ? new Date(s.end) : null;
-
-  // valeurs actuelles
-  let startDate = startDateObj.toISOString().split("T")[0];
+  let startDate = new Date(s.start).toISOString().split("T")[0];
   let startTime = formatTime(s.start);
 
-  let endDate = endDateObj
-    ? endDateObj.toISOString().split("T")[0]
+  let endDate = s.end
+    ? new Date(s.end).toISOString().split("T")[0]
     : startDate;
 
   let endTime = s.end ? formatTime(s.end) : "";
 
-  // prompts séparés (PROPRE)
   let newStartDate = prompt("Date début (YYYY-MM-DD)", startDate);
   let newStartTime = prompt("Heure début (HH:MM)", startTime);
 
@@ -96,13 +101,24 @@ function editSleep(i) {
 
   let newType = prompt("Type (nap/night)", s.type);
 
-  // validation
   if (newStartDate && newStartTime) {
     s.start = combine(newStartDate, newStartTime);
   }
 
   if (newEndDate && newEndTime) {
-    s.end = combine(newEndDate, newEndTime);
+    let endISO = combine(newEndDate, newEndTime);
+
+    // gestion nuit
+    if (newType === "night") {
+      let sd = new Date(s.start);
+      let ed = new Date(endISO);
+      if (ed < sd) {
+        ed.setDate(ed.getDate() + 1);
+        endISO = ed.toISOString();
+      }
+    }
+
+    s.end = endISO;
   }
 
   if (newType === "nap" || newType === "night") {
@@ -114,7 +130,7 @@ function editSleep(i) {
 
 // ===== DELETE =====
 function deleteSleep(i) {
-  data.splice(i,1);
+  data.splice(i, 1);
   save();
 }
 
@@ -153,8 +169,8 @@ function drawSegment(sleep, radius, live = false) {
   let start = new Date(sleep.start);
   let end = new Date(sleep.end);
 
-  let startMin = start.getHours()*60 + start.getMinutes();
-  let endMin = end.getHours()*60 + end.getMinutes();
+  let startMin = start.getHours() * 60 + start.getMinutes();
+  let endMin = end.getHours() * 60 + end.getMinutes();
 
   let duration = endMin - startMin;
   if (duration < 0) duration += 1440;
@@ -168,7 +184,6 @@ function drawSegment(sleep, radius, live = false) {
     dot.style.width = "6px";
     dot.style.height = "6px";
     dot.style.borderRadius = "50%";
-
     dot.style.background =
       sleep.type === "night" ? "#ffb86c" : "#7c8cff";
 
@@ -185,138 +200,84 @@ function drawSegment(sleep, radius, live = false) {
   }
 }
 
-// ===== LISTE (AVEC EDIT) =====
+// ===== LISTE =====
 function renderList() {
   let el = document.getElementById("sleepList");
   if (!el) return;
 
   el.innerHTML = "";
 
-  data.forEach((s,i) => {
+  data.forEach((s, i) => {
     let startDate = new Date(s.start).toLocaleDateString();
     let endDate = s.end ? new Date(s.end).toLocaleDateString() : "";
 
-   el.innerHTML += `
-  <div class="item">
-    <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
-    
-    📅 ${startDate} ${formatTime(s.start)}
-    ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
-    
-    <br><br>
-    <button onclick="editSleep(${i})">✏️ Modifier</button>
-    <button onclick="deleteSleep(${i})">❌</button>
-  </div>
-`;
+    el.innerHTML += `
+      <div class="item">
+        <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
+        
+        📅 ${startDate} ${formatTime(s.start)}
+        ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
+        
+        <br><br>
+        <button onclick="editSleep(${i})">✏️ Modifier</button>
+        <button onclick="deleteSleep(${i})">❌</button>
+      </div>
+    `;
   });
 }
 
-// ===== PREDICTION =====
+// ===== PREDICTION SIMPLE + AGE =====
 function predictNext() {
   if (data.length === 0) return;
 
   let last = data[data.length - 1];
   if (!last.end) return;
 
+  let age = getAgeMonths();
+
+  let wakeWindow =
+    age < 3 ? 90 :
+    age < 6 ? 120 :
+    age < 9 ? 150 :
+    180;
+
+  let napDuration =
+    age < 6 ? 60 :
+    age < 12 ? 50 :
+    45;
+
   let lastEnd = new Date(last.end);
 
-  // 🧠 calcul fenêtre d'éveil moyenne
-  let windows = [];
+  let nextStart = new Date(lastEnd);
+  nextStart.setMinutes(nextStart.getMinutes() + wakeWindow);
 
-  for (let i = 1; i < data.length; i++) {
-    if (!data[i-1].end) continue;
+  let nextEnd = new Date(nextStart);
+  nextEnd.setMinutes(nextEnd.getMinutes() + napDuration);
 
-    let w = (new Date(data[i].start) - new Date(data[i-1].end)) / 60000;
-
-    if (w > 30 && w < 300) windows.push(w);
-  }
-
-  let wakeWindow = windows.reduce((a,b)=>a+b,0)/windows.length || 120;
-
-  // 🧠 durée sieste moyenne
-  let naps = data.filter(s => s.type === "nap" && s.end);
-
-  let napDurations = naps.map(n =>
-    (new Date(n.end) - new Date(n.start)) / 60000
-  );
-
-  let avgNap = napDurations.reduce((a,b)=>a+b,0)/napDurations.length || 60;
-
-  // 🧠 générer planning
-  let predictions = [];
-
-  let currentTime = new Date(lastEnd);
-
-  for (let i = 0; i < 4; i++) {
-    let napStart = new Date(currentTime);
-    napStart.setMinutes(napStart.getMinutes() + wakeWindow);
-
-    let napEnd = new Date(napStart);
-    napEnd.setMinutes(napEnd.getMinutes() + avgNap);
-
-    predictions.push({
-      type: "nap",
-      start: napStart,
-      end: napEnd
-    });
-
-    currentTime = napEnd;
-  }
-
-  // 🌙 coucher nuit
-  let bedtime = new Date(currentTime);
+  let bedtime = new Date(nextEnd);
   bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
 
-  // ===== UI =====
-  displayPredictions(predictions, bedtime);
-
-  // countdown = prochaine sieste
-  let next = predictions[0].start;
-  let minutes = Math.round((next - new Date())/60000);
-  updateUI(minutes + " min");
-}
-
-function displayPredictions(predictions, bedtime) {
   let el = document.getElementById("nextTime");
-  if (!el) return;
-
-  let html = "";
-
-  predictions.forEach((p, i) => {
-    html += `
-      <div style="margin-bottom:8px">
-        😴 Sieste ${i+1} :
-        ${formatTime(p.start)} → ${formatTime(p.end)}
-      </div>
-    `;
-  });
-
-  html += `
-    <div style="margin-top:10px">
+  if (el) {
+    el.innerHTML = `
+      😴 Prochaine sieste : ${formatTime(nextStart)} → ${formatTime(nextEnd)}<br>
       🌙 Coucher estimé : ${formatTime(bedtime)}
-    </div>
-  `;
+    `;
+  }
 
-  el.innerHTML = html;
+  let minutes = Math.round((nextStart - new Date()) / 60000);
+  updateUI(minutes + " min");
 }
 
 // ===== UTILS =====
 function combine(date, time) {
-  let d = new Date(date + "T" + time);
-  return d.toISOString();
-}
-
-function parseTime(t) {
-  let d = new Date();
-  let [h,m] = t.split(":");
-  d.setHours(h,m,0);
-  return d.toISOString();
+  return new Date(date + "T" + time).toISOString();
 }
 
 function formatTime(d) {
   d = new Date(d);
-  return d.getHours().toString().padStart(2,'0') + ":" +
-         d.getMinutes().toString().padStart(2,'0');
+  return d.getHours().toString().padStart(2, '0') + ":" +
+         d.getMinutes().toString().padStart(2, '0');
 }
 
 function updateUI(text) {
