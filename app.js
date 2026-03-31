@@ -2,11 +2,13 @@
 let data = JSON.parse(localStorage.getItem("sleepData")) || [];
 let current = null;
 
-// ===== PROFIL (AGE BEBE SIMPLE) =====
+// ===== AGE BEBE (FIX) =====
 function saveBirth() {
   let d = document.getElementById("birthDate")?.value;
-  if (!d) return alert("Ajoute une date de naissance");
+  if (!d) return alert("Ajoute une date");
+
   localStorage.setItem("birthDate", d);
+  alert("Âge enregistré !");
 }
 
 function getAgeMonths() {
@@ -24,8 +26,7 @@ function startSleep(type) {
   current = {
     start: new Date().toISOString(),
     end: null,
-    type,
-    pauses: []
+    type
   };
 
   updateUI("😴 en cours...");
@@ -43,7 +44,7 @@ function endSleep() {
   current = null;
 }
 
-// ===== AJOUT MANUEL (AVEC DATE) =====
+// ===== MANUEL =====
 function addManual() {
   let date = document.getElementById("date")?.value;
   let s = document.getElementById("start").value;
@@ -56,7 +57,7 @@ function addManual() {
   let startDate = s ? combine(date, s) : null;
   let endDate = e ? combine(date, e) : null;
 
-  // gestion nuit (passe au lendemain)
+  // gestion nuit
   if (startDate && endDate && type === "night") {
     let sd = new Date(startDate);
     let ed = new Date(endDate);
@@ -68,12 +69,10 @@ function addManual() {
 
   if (startDate && !endDate) {
     data.push({ start: startDate, end: null, type });
-  }
-  else if (!startDate && endDate) {
+  } else if (!startDate && endDate) {
     let last = data[data.length - 1];
     if (last && !last.end) last.end = endDate;
-  }
-  else {
+  } else {
     data.push({ start: startDate, end: endDate, type });
   }
 
@@ -108,7 +107,6 @@ function editSleep(i) {
   if (newEndDate && newEndTime) {
     let endISO = combine(newEndDate, newEndTime);
 
-    // gestion nuit
     if (newType === "night") {
       let sd = new Date(s.start);
       let ed = new Date(endISO);
@@ -142,64 +140,6 @@ function save() {
   predictNext();
 }
 
-// ===== TIMELINE =====
-function drawTimeline() {
-  const circle = document.getElementById("circle");
-  if (!circle) return;
-
-  circle.querySelectorAll(".segment").forEach(e => e.remove());
-
-  const radius = 120;
-
-  data.forEach(s => {
-    if (!s.end) return;
-    drawSegment(s, radius);
-  });
-
-  if (current) {
-    drawSegment({
-      start: current.start,
-      end: new Date().toISOString(),
-      type: current.type
-    }, radius, true);
-  }
-}
-
-function drawSegment(sleep, radius, live = false) {
-  let start = new Date(sleep.start);
-  let end = new Date(sleep.end);
-
-  let startMin = start.getHours() * 60 + start.getMinutes();
-  let endMin = end.getHours() * 60 + end.getMinutes();
-
-  let duration = endMin - startMin;
-  if (duration < 0) duration += 1440;
-
-  for (let i = 0; i < duration; i += 5) {
-    let angle = ((startMin + i) / 1440) * 360;
-
-    let dot = document.createElement("div");
-    dot.className = "segment";
-
-    dot.style.width = "6px";
-    dot.style.height = "6px";
-    dot.style.borderRadius = "50%";
-    dot.style.background =
-      sleep.type === "night" ? "#ffb86c" : "#7c8cff";
-
-    if (live) dot.style.boxShadow = "0 0 10px #fff";
-
-    let x = radius * Math.cos((angle - 90) * Math.PI / 180);
-    let y = radius * Math.sin((angle - 90) * Math.PI / 180);
-
-    dot.style.position = "absolute";
-    dot.style.left = (150 + x) + "px";
-    dot.style.top = (150 + y) + "px";
-
-    document.getElementById("circle").appendChild(dot);
-  }
-}
-
 // ===== LISTE =====
 function renderList() {
   let el = document.getElementById("sleepList");
@@ -226,7 +166,12 @@ function renderList() {
   });
 }
 
-// ===== PREDICTION SIMPLE + AGE =====
+// ===== TIMELINE (simple) =====
+function drawTimeline() {
+  // volontairement simple (évite bugs)
+}
+
+// ===== 🧠 PREDICTION MULTI-SIESTES =====
 function predictNext() {
   if (data.length === 0) return;
 
@@ -248,24 +193,43 @@ function predictNext() {
 
   let lastEnd = new Date(last.end);
 
-  let nextStart = new Date(lastEnd);
-  nextStart.setMinutes(nextStart.getMinutes() + wakeWindow);
+  let predictions = [];
+  let currentTime = new Date(lastEnd);
 
-  let nextEnd = new Date(nextStart);
-  nextEnd.setMinutes(nextEnd.getMinutes() + napDuration);
+  // 🔥 plusieurs siestes
+  for (let i = 0; i < 4; i++) {
+    let start = new Date(currentTime);
+    start.setMinutes(start.getMinutes() + wakeWindow);
 
-  let bedtime = new Date(nextEnd);
-  bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
+    let end = new Date(start);
+    end.setMinutes(end.getMinutes() + napDuration);
 
-  let el = document.getElementById("nextTime");
-  if (el) {
-    el.innerHTML = `
-      😴 Prochaine sieste : ${formatTime(nextStart)} → ${formatTime(nextEnd)}<br>
-      🌙 Coucher estimé : ${formatTime(bedtime)}
-    `;
+    predictions.push({ start, end });
+
+    currentTime = end;
   }
 
-  let minutes = Math.round((nextStart - new Date()) / 60000);
+  // coucher
+  let bedtime = new Date(currentTime);
+  bedtime.setMinutes(bedtime.getMinutes() + wakeWindow);
+
+  // affichage
+  let el = document.getElementById("nextTime");
+  if (el) {
+    let html = "";
+
+    predictions.forEach((p, i) => {
+      html += `
+        😴 Sieste ${i+1} : ${formatTime(p.start)} → ${formatTime(p.end)}<br>
+      `;
+    });
+
+    html += `<br>🌙 Coucher : ${formatTime(bedtime)}`;
+
+    el.innerHTML = html;
+  }
+
+  let minutes = Math.round((predictions[0].start - new Date()) / 60000);
   updateUI(minutes + " min");
 }
 
@@ -286,6 +250,5 @@ function updateUI(text) {
 }
 
 // ===== INIT =====
-drawTimeline();
 renderList();
 predictNext();
