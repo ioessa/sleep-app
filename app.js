@@ -97,6 +97,8 @@ function save() {
 // ===== LISTE =====
 function renderList() {
   let el = document.getElementById("sleepList");
+  if (!el) return;
+
   el.innerHTML = "";
 
   data.forEach((s, i) => {
@@ -106,11 +108,62 @@ function renderList() {
     el.innerHTML += `
       <div class="item">
         <b>${s.type === "night" ? "🌙 Nuit" : "😴 Sieste"}</b><br>
+        
         📅 ${startDate} ${formatTime(s.start)}
         ${s.end ? "→ " + endDate + " " + formatTime(s.end) : ""}
+        
+        <br><br>
+        <button onclick="editSleep(${i})">✏️ Modifier</button>
+        <button onclick="deleteSleep(${i})">❌ Supprimer</button>
       </div>
     `;
   });
+}
+
+function editSleep(i) {
+  let s = data[i];
+
+  let startDate = new Date(s.start).toISOString().split("T")[0];
+  let startTime = formatTime(s.start);
+
+  let endDate = s.end
+    ? new Date(s.end).toISOString().split("T")[0]
+    : startDate;
+
+  let endTime = s.end ? formatTime(s.end) : "";
+
+  let newStartDate = prompt("Date début (YYYY-MM-DD)", startDate);
+  let newStartTime = prompt("Heure début (HH:MM)", startTime);
+
+  let newEndDate = prompt("Date fin (YYYY-MM-DD)", endDate);
+  let newEndTime = prompt("Heure fin (HH:MM)", endTime);
+
+  let newType = prompt("Type (nap/night)", s.type);
+
+  if (newStartDate && newStartTime) {
+    s.start = combine(newStartDate, newStartTime);
+  }
+
+  if (newEndDate && newEndTime) {
+    let endISO = combine(newEndDate, newEndTime);
+
+    if (newType === "night") {
+      let sd = new Date(s.start);
+      let ed = new Date(endISO);
+      if (ed < sd) {
+        ed.setDate(ed.getDate() + 1);
+        endISO = ed.toISOString();
+      }
+    }
+
+    s.end = endISO;
+  }
+
+  if (newType === "nap" || newType === "night") {
+    s.type = newType;
+  }
+
+  save();
 }
 
 // ===== 🎯 TIMELINE CERCLE =====
